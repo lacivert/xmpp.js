@@ -18,7 +18,8 @@ class Reconnect extends EventEmitter {
       if (entity.status !== 'disconnect') {
         return
       }
-      this.reconnect()
+      // Ignoring the rejection is safe because the error is emitted on entity
+      this.reconnect().catch(() => {})
     }, delay)
   }
 
@@ -31,16 +32,13 @@ class Reconnect extends EventEmitter {
     const {status} = entity
     entity.status = 'offline'
 
-    entity
-      .start(entity.startOptions)
-      .then(() => {
-        this.emit('reconnected')
-      })
-      // FIXME this makes the error being emitted twice on Chrome
-      .catch(err => {
-        entity.emit('error', err)
-      })
+    const start = entity.start(entity.startOptions)
+
     entity.status = status
+
+    return start.then(() => {
+      this.emit('reconnected')
+    })
   }
 
   start() {
